@@ -1,0 +1,44 @@
+{
+	"schemaVersion": 1,
+	"id": "younameit",
+	"version": "${version}",
+	"name": "You Name It!",
+	"description": "Mod compatible everything — blocks, tools, You Name It! Every survival-obtainable block in the game, vanilla or modded, gets its own full tool and armour set, generated and textured at load time.",
+	"authors": [
+		"colin"
+	],
+	"contact": {
+		"homepage": "https://github.com/colinthepwner/younameit-bta",
+		"sources": "https://github.com/colinthepwner/younameit-bta",
+		"issues": "https://github.com/colinthepwner/younameit-bta/issues"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/younameit/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.colin.younameit.YouNameIt"
+		],
+		"afterItemInit": [
+			"net.colin.younameit.YouNameIt"
+		],
+		"recipesReady": [
+			"net.colin.younameit.recipe.YniRecipes"
+		],
+		"initModels": [
+			"net.colin.younameit.client.YniClient"
+		]
+	},
+	"mixins": [
+		"younameit.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=${fabricloader}",
+		"minecraft": "*",
+		"java": ">=${java}",
+		"halplibe": ">=6.1.0"
+	},
+	"suggests": {
+		"modmenu": ">=${modmenu}"
+	}
+}

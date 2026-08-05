@@ -1,0 +1,15 @@
+{
+  "required": false,
+  "package": "net.colin.younameit.mixin",
+  "compatibilityLevel": "JAVA_${java}",
+  "minVersion": "0.8",
+  "mixins": [
+    "EntityFireImmuneAccessor",
+    "PlayerFireSetMixin"
+  ],
+  "client": [],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

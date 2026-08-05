@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Development game instance (worlds, logs, options, downloaded assets)
+run/
+
+# One-off diagnostic used while developing the texture tracer, not part of the mod
+SharedProbe.java
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
