@@ -9,19 +9,12 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Loads the vanilla sprites the masks are derived from, and caches the resulting masks.
- *
- * <p>Everything is read through the texture pack list rather than the classloader, so an active
- * resource pack's tools are what we trace.
- */
 public final class VanillaArt {
     private VanillaArt() {}
 
     private static final String ITEM_DIR = "/assets/minecraft/textures/item/";
     private static final String ARMOR_DIR = "/assets/minecraft/textures/armor/";
 
-    /** Two materials whose sprites differ everywhere the material shows. */
     private static final String MAT_A = "iron";
     private static final String MAT_B = "diamond";
 
@@ -31,21 +24,18 @@ public final class VanillaArt {
         cache.clear();
     }
 
-    /** {@code pickaxe}, {@code axe}, {@code shovel}, {@code hoe}, {@code sword}. */
     public static SpriteMask tool(String type) {
         return cached("tool:" + type,
                 ITEM_DIR + "tool_" + type + "_" + MAT_A + ".png",
                 ITEM_DIR + "tool_" + type + "_" + MAT_B + ".png");
     }
 
-    /** {@code helmet}, {@code chestplate}, {@code leggings}, {@code boots}. */
     public static SpriteMask armorIcon(String piece) {
         return cached("armor:" + piece,
                 ITEM_DIR + "armor_" + piece + "_" + MAT_A + ".png",
                 ITEM_DIR + "armor_" + piece + "_" + MAT_B + ".png");
     }
 
-    /** The worn-armour sheets: layer 1 covers head/chest/boots, layer 2 the legs. */
     public static SpriteMask armorSheet(int layer) {
         return cached("sheet:" + layer,
                 ARMOR_DIR + MAT_A + "_" + layer + ".png",
@@ -74,12 +64,12 @@ public final class VanillaArt {
                 }
             }
         } catch (Throwable ignored) {
-            // Fall through to the classpath.
+
         }
         try (InputStream in = VanillaArt.class.getResourceAsStream(path)) {
             if (in != null) return ImageIO.read(in);
         } catch (Throwable ignored) {
-            // Reported by the caller as a missing mask.
+
         }
         return null;
     }

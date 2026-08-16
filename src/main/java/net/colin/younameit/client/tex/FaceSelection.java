@@ -5,26 +5,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Decides which of a block's faces each generated piece is drawn from.
- *
- * <p>Most blocks are the same on all six sides and this collapses to "use the one texture". The
- * interesting cases are the blocks that are not:
- *
- * <ul>
- *   <li><b>One odd face out</b>, like a pumpkin's carved front or a furnace's opening. That face is
- *       the block's identity, not its substance, so no tool uses it and only the chestplate does —
- *       a pickaxe made of pumpkin should look like pumpkin, not like a face grinning off the
- *       head. Everything else takes the majority face.</li>
- *   <li><b>Several genuinely different faces</b>, like TNT's top, bottom and sides. Tools take the
- *       calmest face, because a busy texture squeezed into a pickaxe head turns to noise; armour
- *       spreads the faces across its four pieces, with the chestplate — the largest canvas — given
- *       the busiest one.</li>
- * </ul>
- */
 public final class FaceSelection {
 
-    /** Indices into {@link #armorFaces}, matching the piece order used by the client. */
     public static final int HELMET = 0;
     public static final int CHESTPLATE = 1;
     public static final int LEGGINGS = 2;
@@ -46,7 +28,6 @@ public final class FaceSelection {
         return armorFaces[Math.max(0, Math.min(armorFaces.length - 1, piece))];
     }
 
-    /** Every distinct image this selection can hand out, for palette caching. */
     public List<BufferedImage> distinctUsed() {
         List<BufferedImage> out = new ArrayList<>();
         out.add(toolFace);
@@ -60,24 +41,6 @@ public final class FaceSelection {
         return new FaceSelection(only, new BufferedImage[]{only, only, only, only});
     }
 
-    /**
-     * Assigns faces to pieces by where they sit on the block, not by how busy they are.
-     *
-     * <p>Position is the rule that actually matches what a player expects to see. Grass is the
-     * case that proves it: green on top, earth down the sides. Worn as a set that should read as
-     * grass over the head and shoulders and soil down the legs, which is anatomy, not colour
-     * statistics. Sorting by busyness put the green on the chest and scattered earth and the
-     * underside across the other three, so the suit did not resemble the block from any angle.
-     *
-     * <p>So the top face clothes the head and chest, the sides clothe the legs and feet, and tools
-     * take a side, because the sides are what the block is made of rather than what grows on it.
-     * A block whose sides disagree with each other — a pumpkin's carved front, a furnace's opening
-     * — hands that odd side to the chestplate, which is the one piece with room to show it.
-     *
-     * @param top    the up face, may be null
-     * @param bottom the down face, may be null
-     * @param sides  the four horizontal faces, nulls allowed and ignored
-     */
     public static FaceSelection of(BufferedImage top, BufferedImage bottom, List<BufferedImage> sides) {
         List<BufferedImage> all = new ArrayList<>();
         if (top != null) all.add(top);
@@ -88,8 +51,6 @@ public final class FaceSelection {
         if (variants.isEmpty()) return null;
         if (variants.size() == 1) return single(variants.get(0).image);
 
-        // Resolve each position to whichever surviving variant represents it, so a face that was
-        // merged away (a cactus top folded into its sides) still resolves to its stand-in.
         BufferedImage topFace = representative(top, variants);
         List<Variant> sideVariants = group(sides);
         sideVariants = collapseSimilar(sideVariants);
@@ -114,7 +75,6 @@ public final class FaceSelection {
         return new FaceSelection(majoritySide, armor);
     }
 
-    /** The surviving variant that a given face collapsed into, or the face itself. */
     private static BufferedImage representative(BufferedImage face, List<Variant> variants) {
         if (face == null) return null;
         int[] px = Raster.read(face);
@@ -135,18 +95,6 @@ public final class FaceSelection {
         return best != null ? best.image : face;
     }
 
-    /**
-     * Merges faces that are different images but plainly the same material.
-     *
-     * <p>A cactus is the case this exists for: its top and its spined sides are separate textures,
-     * so counting distinct images alone treats it exactly like TNT and starts handing a different
-     * face to each armour piece. But cactus is green all the way round with the same busyness on
-     * every side, whereas TNT is red sides against a pale top. Comparing average colour <em>and</em>
-     * busyness separates the two without needing to know what either block is: faces that agree on
-     * both are one material seen twice, faces that disagree on either are genuinely different
-     * sides. A pumpkin's carved front survives this because the carving makes it far busier than
-     * the plain sides, even though both are orange.
-     */
     private static List<Variant> collapseSimilar(List<Variant> variants) {
         if (variants.size() < 2) return variants;
 
@@ -164,7 +112,7 @@ public final class FaceSelection {
                 }
             }
             if (into != null) {
-                // Keep whichever covers more sides as the representative image.
+
                 if (v.count > into.count) {
                     merged.set(merged.indexOf(into), v);
                     v.count += into.count;
@@ -178,7 +126,6 @@ public final class FaceSelection {
         return merged;
     }
 
-    /** Collapses identical faces, counting how many sides each distinct image covers. */
     private static List<Variant> group(List<BufferedImage> faces) {
         List<Variant> variants = new ArrayList<>();
         for (BufferedImage face : faces) {
@@ -214,13 +161,6 @@ public final class FaceSelection {
         return new double[]{r / (double) n, g / (double) n, b / (double) n};
     }
 
-    /**
-     * How busy a texture is: the mean distance of its pixels from their own average colour.
-     *
-     * <p>Plain deviation rather than a count of distinct colours, because a texture can use many
-     * near-identical shades and still read as flat, which is exactly the sort of face that shrinks
-     * down well onto a tool head.
-     */
     private static double colourVariation(int[] px) {
         long r = 0, g = 0, b = 0;
         int n = 0;

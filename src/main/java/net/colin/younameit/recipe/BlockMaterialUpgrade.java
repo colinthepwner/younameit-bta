@@ -17,32 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Gives a storage block the gear of the thing it is made of, only tougher.
- *
- * <p>A block of iron is nine ingots. Gear cut from it should mine like iron and break what iron
- * breaks — the metal is the same metal — and the only honest advantage of using nine times the
- * material is that it lasts longer. Deriving it from hardness instead produced an iron block that
- * mined <em>faster</em> than iron, which is a different metal rather than more of one.
- *
- * <p>Both halves are read out of the recipe table rather than assumed, so a mod's own storage
- * block and its own tools are handled the same way as vanilla's:
- * <ul>
- *   <li>a shaped recipe of nine identical items producing one block says "this block is made of
- *       that item" without relying on either being named anything in particular;</li>
- *   <li>an existing recipe whose output is a tool tells us the {@link ToolMaterial} that item is
- *       worth, straight from the tool the game already ships.</li>
- * </ul>
- *
- * <p>Runs at {@code recipesReady} because none of that exists earlier. Mining speed and harvest
- * level are read live off the ToolMaterial so changing it here is enough, but durability is baked
- * into each Item at construction, which is why every piece is re-stamped through
- * {@link YniGear#yniSetDurability}.
- */
 final class BlockMaterialUpgrade {
     private BlockMaterialUpgrade() {}
 
-    /** A block's gear lasts this much longer than the gear of its component. */
     private static final double DURABILITY_BONUS = 2.5;
     private static final int DIAMOND_TOOL_DURABILITY = 1536;
 
@@ -56,7 +33,6 @@ final class BlockMaterialUpgrade {
                 if (!(output instanceof ItemStack result) || result.getItem() == null) continue;
                 Item resultItem = result.getItem();
 
-                // Ours must not seed the table, or a set would end up quoting itself.
                 if (resultItem instanceof YniGear) continue;
 
                 ToolMaterial material = materialOf(resultItem);
@@ -67,7 +43,6 @@ final class BlockMaterialUpgrade {
                     continue;
                 }
 
-                // Storage recipe: nine of one thing, one of another.
                 Integer component = nineOfOne(entry.getInput());
                 if (component != null && result.stackSize == 1 && component != resultItem.id) {
                     componentOfBlock.putIfAbsent(resultItem.id, component);
@@ -90,7 +65,6 @@ final class BlockMaterialUpgrade {
                 int durability = (int) Math.min(DIAMOND_TOOL_DURABILITY,
                         Math.round(base.getDurability() * DURABILITY_BONUS));
 
-                // Same metal, so the same reach and the same speed.
                 set.toolMaterial
                         .setMiningLevel(base.getMiningLevel())
                         .setEfficiency(base.getEfficiency(false), base.getEfficiency(true))
@@ -104,8 +78,7 @@ final class BlockMaterialUpgrade {
                                 : durability);
                     }
                 }
-                // Logged here rather than trusting the startup balance sample, which is printed
-                // during item registration and therefore shows the pre-upgrade numbers.
+
                 YouNameIt.LOGGER.info("  {} now mines like its component: level {}, speed {}, durability {}.",
                         set.id, base.getMiningLevel(),
                         String.format("%.2f", base.getEfficiency(false)), durability);
@@ -121,17 +94,15 @@ final class BlockMaterialUpgrade {
         try {
             if (item instanceof ItemTool tool) return tool.getMaterial();
             if (item instanceof ItemToolSword) {
-                // ItemToolSword keeps its material private with no getter, so read it off a
-                // sibling tool instead; a sword alone never establishes a material here.
+
                 return null;
             }
         } catch (Throwable ignored) {
-            // Fall through.
+
         }
         return null;
     }
 
-    /** The item id when a recipe is nine identical inputs, otherwise null. */
     private static Integer nineOfOne(Object input) {
         if (!(input instanceof RecipeSymbol[] symbols) || symbols.length != 9) return null;
         Integer id = null;

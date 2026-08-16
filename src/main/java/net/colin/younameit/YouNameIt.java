@@ -12,19 +12,10 @@ import turniplabs.halplibe.util.ItemInitEntrypoint;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * "You Name It!" — generates a full tool + armor set for every survival-obtainable block
- * in the game, vanilla or modded, entirely at load time.
- *
- * <p>Everything hangs off {@link #afterItemInit()}. That is the one moment in BTA's startup
- * where every block and item — ours, vanilla's, and every other mod's — is registered, but
- * nothing has been rendered yet. See the ordering note in {@code SetRegistrar}.
- */
 public class YouNameIt implements ModInitializer, ItemInitEntrypoint {
     public static final String MOD_ID = "younameit";
     public static final Logger LOGGER = LoggerFactory.getLogger("You Name It!");
 
-    /** Every set we generated, in stable order. Read by the client renderer and the recipe pass. */
     private static List<MaterialSet> sets = Collections.emptyList();
 
     public static List<MaterialSet> getSets() {
@@ -37,11 +28,6 @@ public class YouNameIt implements ModInitializer, ItemInitEntrypoint {
         LOGGER.info("You Name It! loading — every block becomes a tool set.");
     }
 
-    /**
-     * Fired from {@code Items.init()}, after {@code Blocks.init()}. Every mod that registers
-     * content through HalpLibe's block/item entrypoints has already run by this point, and
-     * the texture atlas has not been built yet, so this is the last safe moment to add items.
-     */
     @Override
     public void afterItemInit() {
         if (!YniConfig.enabled) {
@@ -60,14 +46,6 @@ public class YouNameIt implements ModInitializer, ItemInitEntrypoint {
         logBalanceSample();
     }
 
-    /**
-     * Prints the derived numbers for a few materials whose vanilla counterparts are known.
-     *
-     * <p>Balance is the one part of this mod that cannot be checked by asking whether anything
-     * threw: a set with badly wrong numbers registers exactly as cleanly as a correct one. Having
-     * the values next to the vanilla row they are supposed to match turns "it launched" into
-     * something actually worth reading.
-     */
     private void logBalanceSample() {
         String[] watch = {
                 "minecraft_block_dirt", "minecraft_block_gravel", "minecraft_block_sand",

@@ -22,18 +22,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
-/**
- * Decides which materials earn a set.
- *
- * <p>Two passes. Blocks first, because a block carries real physical properties and should win
- * when the same item is reachable both ways; then every remaining item, so feathers, bone, wheat
- * and whatever a mod adds are covered too. Both are deduplicated against one shared set of
- * ingredient ids, so a material only ever produces one family of gear.
- *
- * <p>The bar for either is "could a survival player hold a stack of this?" — it must not be hidden
- * from the creative menu, which is how BTA and most mods flag technical content, and blocks must
- * additionally be breakable. Tools and armour are excluded outright so sets never compound.
- */
 public final class SetScanner {
     private SetScanner() {}
 
@@ -45,11 +33,9 @@ public final class SetScanner {
         int skippedUnbreakable = 0, skippedNoItem = 0, skippedHidden = 0;
         int skippedGear = 0, skippedDuplicate = 0, splitBlocks = 0;
 
-        // ---- pass 1: blocks -------------------------------------------------------------
         for (Block<?> block : Blocks.blocksList) {
             if (block == null || block.id() == 0) continue;
 
-            // Unbreakable blocks (bedrock and friends) report a negative hardness.
             if (block.getHardness() < 0.0F || Float.isInfinite(block.getHardness())) {
                 skippedUnbreakable++;
                 continue;
@@ -67,7 +53,7 @@ public final class SetScanner {
                 skippedGear++;
                 continue;
             }
-            // Several blocks share one drop (stone -> cobblestone). One set per ingredient.
+
             if (!seenIngredients.add(ingredient.id)) {
                 skippedDuplicate++;
                 continue;
@@ -81,7 +67,6 @@ public final class SetScanner {
 
         int fromBlocks = out.size();
 
-        // ---- pass 2: everything else ----------------------------------------------------
         for (Item item : Item.itemsList) {
             if (item == null) continue;
             if (seenIngredients.contains(item.id)) continue;
@@ -101,9 +86,6 @@ public final class SetScanner {
             }
         }
 
-        // Sorted first so the ranking below has a deterministic list to work from, then ordered by
-        // who most deserves an id. That second step is not cosmetic: there are never enough item
-        // ids for a large pack, so this order is what decides which materials get gear at all.
         out.sort(Comparator.comparing(s -> s.id));
         out = SetPriority.rank(out);
 
@@ -127,7 +109,6 @@ public final class SetScanner {
                 variantNameOf(block, meta), sibling, SetStats.derive(block, ingredient));
     }
 
-    /** Any metadata in the group other than this one, for the self-naming comparison. */
     private static int siblingOf(int[] metas, int meta) {
         if (metas.length < 2) return -1;
         for (int candidate : metas) {
@@ -136,28 +117,19 @@ public final class SetScanner {
         return -1;
     }
 
-    /**
-     * The colour name for a painted block's metadata, or null when there is nothing to add.
-     *
-     * <p>Taken from the block's own {@code fromMetadata} rather than from any name it reports,
-     * because a painted block answers with the same translated name for every colour it holds.
-     */
     private static String variantNameOf(Block<?> block, int meta) {
         if (block == null) return null;
         try {
             if (!(block.getLogic() instanceof IPainted painted)) return null;
-            // Always report the colour here; whether it actually gets prefixed is decided at name
-            // time in YniGear.sourceName, which is the only place the resolved names can be
-            // compared (I18n is not up yet during the scan).
+
             DyeColor colour = painted.fromMetadata(meta);
             if (colour != null) return prettify(colour.name());
         } catch (Throwable ignored) {
-            // No colour to report; the base name stands on its own.
+
         }
         return null;
     }
 
-    /** {@code LIGHT_BLUE} -> {@code Light Blue}. */
     private static String prettify(String constant) {
         StringBuilder sb = new StringBuilder();
         for (String part : constant.split("_")) {
@@ -169,40 +141,14 @@ public final class SetScanner {
         return sb.length() == 0 ? null : sb.toString();
     }
 
-    /**
-     * The metadata values that are genuinely different variants of this block.
-     *
-     * <p>BTA keeps colour and material variants inside one block id — a single {@code Blocks.WOOL}
-     * with sixteen colours as metadata — so treating a block as one material makes every colour
-     * craft the same white gear.
-     *
-     * <p>Variants are found by asking the block for its <em>language key</em> at each metadata
-     * value and keeping the ones that differ. That is deliberately not a texture comparison:
-     * textures are client-side, and item registration has to produce identical ids on a dedicated
-     * server or every id desyncs. A block that names its variants separately is telling us they
-     * are separate things, and one that returns the same key for every value is telling us the
-     * metadata means something else entirely — an axis, a fill level, a growth stage — which is
-     * exactly the case we must not split on.
-     */
     private static int[] variantsOf(Block<?> block, Item ingredient) {
         if (block == null) return new int[]{0};
         try {
-            // IPainted is the block itself declaring "my metadata is a dye colour". Any block that
-            // implements it — wool, painted planks, slabs, doors, lamps, and anything a mod adds
-            // on the same interface — enumerates exactly through DyeColor, with no name matching
-            // and no reliance on the client.
-            //
-            // Two earlier attempts were both wrong and both failed silently, which is why this is
-            // measured rather than assumed: Item.getHasSubtypes() is false on BTA's wool despite
-            // its sixteen colours, and Block.getLanguageKey(meta) returns the same key for every
-            // one of them. Each produced "0 blocks split" and no error at all.
+
             if (block.getLogic() instanceof IPainted painted) {
                 Set<Integer> metas = new TreeSet<>();
                 for (DyeColor colour : DyeColor.values()) {
-                    // No masking. A painted chest keeps its facing in the low bits and shifts the
-                    // colour up by its own colorOffset, so an & 15 here erased the colour entirely
-                    // and collapsed all sixteen chests back into one. The block already knows how
-                    // to encode a colour; take whatever it returns.
+
                     metas.add(painted.toMetadata(colour));
                 }
                 if (metas.size() > 1) {
@@ -216,23 +162,11 @@ public final class SetScanner {
                 }
             }
         } catch (Throwable ignored) {
-            // A modded logic class that misbehaves simply stays a single material.
+
         }
         return new int[]{0};
     }
 
-    /**
-     * The metadata variants of a loose item, such as the sixteen colours packed into one dye.
-     *
-     * <p>Items are probed by language key, which is the opposite of what works for blocks and is
-     * worth stating plainly: {@code BlockLogic.getLanguageKey(int)} ignores its argument and
-     * returns the block key, so every wool colour reports the same name — but {@code ItemDye}
-     * overrides {@code getLanguageKey(ItemStack)} and genuinely names each colour. So the signal
-     * that is useless on the block side is exactly the right one on the item side.
-     *
-     * <p>An item that returns one name for every metadata value is telling us the metadata means
-     * damage, charge or nothing at all, and stays a single material.
-     */
     private static int[] itemVariantsOf(Item item) {
         if (item == null) return new int[]{0};
         List<Integer> metas = new ArrayList<>();
@@ -255,7 +189,6 @@ public final class SetScanner {
         return out;
     }
 
-    /** Never build a set out of gear — that is what would turn this into a recursion. */
     private static boolean isGear(Item item) {
         return item instanceof ItemTool || item instanceof ItemToolSword || item instanceof ItemArmor;
     }
@@ -264,7 +197,7 @@ public final class SetScanner {
         try {
             return block.asItem();
         } catch (Throwable ignored) {
-            // A malformed modded block should not take the whole scan down.
+
             return null;
         }
     }
@@ -285,7 +218,6 @@ public final class SetScanner {
         }
     }
 
-    /** {@code namespace_path}, lowercased and stripped to [a-z0-9_], de-duplicated. */
     private static String uniqueId(Block<?> block, Item ingredient, int meta, Set<String> used) {
         String base = null;
         try {
@@ -295,7 +227,7 @@ public final class SetScanner {
                 base = ingredient.namespaceID.namespace() + "_" + ingredient.namespaceID.value();
             }
         } catch (Throwable ignored) {
-            // Fall through to the id-based name.
+
         }
         if (base == null) {
             base = block != null ? "block_" + block.id() : "item_" + (ingredient == null ? 0 : ingredient.id);

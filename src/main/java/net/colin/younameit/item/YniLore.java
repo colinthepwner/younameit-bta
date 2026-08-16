@@ -7,29 +7,9 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * The Ctrl-held description text: one sentence per item.
- *
- * <p>Written as a full matrix of piece against material family rather than two generic halves
- * stitched together. Ninety lines is more to write, but a composed description reads like a
- * composed description — every pickaxe ends up saying the same thing about pickaxes — and the
- * whole point is that these should read as though somebody sat down and wrote them.
- *
- * <p>No line names a specific material, which is what lets ninety of them cover an item list that
- * is not known until load time: a mod added this morning still gets a sentence that fits.
- */
 public final class YniLore {
     private YniLore() {}
 
-    /**
-     * The column order of every array below, stated explicitly rather than relying on
-     * {@link Archetype#ordinal()}.
-     *
-     * <p>Ordinal indexing would work today and break silently the first time somebody reorders or
-     * inserts an archetype — ninety descriptions would shift one column left and every one of them
-     * would still look like a perfectly good sentence, just attached to the wrong material. Naming
-     * the order here makes the enum free to change.
-     */
     private static final Archetype[] ORDER = {
             Archetype.SOFT, Archetype.PLANT, Archetype.FOOD, Archetype.BONE, Archetype.GLASS,
             Archetype.WOOD, Archetype.STONE, Archetype.METAL, Archetype.GEM, Archetype.UNKNOWN,
@@ -152,12 +132,6 @@ public final class YniLore {
         });
     }
 
-    /**
-     * Silk touch is the one trait worth spending the sentence on: it is rare, it changes how the
-     * tool is used, and nothing else in the interface announces it. The full-set fire bonus is
-     * deliberately not surfaced here — it applies to every stone and metal set, so it would
-     * flatten most of the armour descriptions back into one repeated line.
-     */
     private static String silkLine(String piece) {
         switch (piece) {
             case "Pickaxe": return "It lifts stone out whole, as though nothing had happened to it.";
@@ -176,8 +150,7 @@ public final class YniLore {
         }
         String[] byArchetype = LINES.get(pieceName);
         if (byArchetype == null) return "Made to be used, and to be used up.";
-        // An archetype added later without a column falls back to the UNKNOWN line rather than
-        // throwing, which is the right failure for cosmetic text.
+
         Integer i = COLUMN.get(set.stats.archetype);
         if (i == null || i >= byArchetype.length) i = byArchetype.length - 1;
         return byArchetype[i];

@@ -8,25 +8,6 @@ import net.minecraft.core.item.ItemFood;
 
 import java.util.Locale;
 
-/**
- * Works out which {@link Archetype} a material belongs to.
- *
- * <p>Three passes, most trustworthy first:
- * <ol>
- *   <li><b>Block material.</b> If the thing is a block, BTA already knows whether it is stone,
- *       metal, cloth or a plant. This is real data, not a guess, and it covers modded blocks that
- *       use the standard materials without them having to know this mod exists.</li>
- *   <li><b>Name keywords.</b> For plain items there is nothing else to go on. Mod authors write
- *       identifiers in English almost without exception, so {@code copper_ingot} and
- *       {@code raven_feather} classify correctly even though neither is a vanilla item.</li>
- *   <li><b>Generic signals.</b> Anything still unrecognised is judged on what the game can tell
- *       us — is it food, does it stack, does it burn — and otherwise falls to
- *       {@link Archetype#UNKNOWN}, which is capped at wood.</li>
- * </ol>
- *
- * <p>Every keyword list is a promotion above {@code UNKNOWN}, never a demotion, so a mod that
- * names things unusually gets conservative gear rather than wrong gear.
- */
 public final class Archetypes {
     private Archetypes() {}
 
@@ -61,26 +42,17 @@ public final class Archetypes {
             "obsidian", "netherrack", "brick", "concrete", "gravel", "sand", "dirt", "clay", "ore"
     };
 
-    /** Classifies a block-backed material. */
     public static Archetype of(Block<?> block, Item ingredient) {
         Archetype byMaterial = fromBlockMaterial(block);
         if (byMaterial != null) return byMaterial;
         return ofItem(ingredient);
     }
 
-    /** Classifies a plain item with no block behind it. */
     public static Archetype ofItem(Item item) {
         String key = keyOf(item);
 
-        // Ore is checked before everything else, because an ore's name almost always contains the
-        // name of what it yields — "ore_iron" matches the metal list and would otherwise be
-        // ranked as though it were already an ingot. That is a real progression leak in both
-        // directions: raw ore would make iron-tier tools, and the smelting gate would never fire,
-        // because the gate only bites when smelting RAISES the tier. Ore is rock with something
-        // useful in it, so it is rated as rock.
         if (isOre(key)) return Archetype.STONE;
 
-        // Order matters where words overlap: "bone meal" is bone, not food; "glass" beats "sand".
         if (matches(key, BONE_WORDS)) return Archetype.BONE;
         if (matches(key, GLASS_WORDS)) return Archetype.GLASS;
         if (matches(key, SOFT_WORDS)) return Archetype.SOFT;
@@ -91,17 +63,10 @@ public final class Archetypes {
         if (matches(key, WOOD_WORDS)) return Archetype.WOOD;
         if (matches(key, STONE_WORDS)) return Archetype.STONE;
 
-        // Nothing matched by name. Anything edible is food whatever it is called; everything
-        // else becomes the universal variant.
         if (item instanceof ItemFood) return Archetype.FOOD;
         return Archetype.UNKNOWN;
     }
 
-    /**
-     * BTA's own block material, which is authoritative where it exists. Returns null when the
-     * material says nothing useful (stone and metal are handled, but "decoration" is not a
-     * statement about toughness) so the caller can fall through to the name pass.
-     */
     private static Archetype fromBlockMaterial(Block<?> block) {
         if (block == null) return null;
         try {
@@ -120,7 +85,7 @@ public final class Archetypes {
             if (m.isStone()) return Archetype.STONE;
             if (m.isMetal()) return Archetype.METAL;
         } catch (Throwable ignored) {
-            // A modded block with a custom material simply falls through to the name pass.
+
         }
         return null;
     }
@@ -131,18 +96,11 @@ public final class Archetypes {
             String key = item.getKey();
             if (key != null) return key.toLowerCase(Locale.ROOT);
         } catch (Throwable ignored) {
-            // Fall through.
+
         }
         return "";
     }
 
-    /**
-     * Whether the key names an ore.
-     *
-     * <p>Matched against underscore boundaries rather than a bare {@code contains("ore")}, so
-     * "score", "forest", "stored" and "oregano" do not qualify. BTA's ids look like
-     * {@code block_ore_iron}, and modded ones almost always follow the same shape.
-     */
     private static boolean isOre(String key) {
         return key.equals("ore") || key.endsWith("_ore") || key.contains("_ore_") || key.startsWith("ore_")
                 || key.endsWith(".ore") || key.contains(".ore.") || key.startsWith("ore.");

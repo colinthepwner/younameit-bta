@@ -7,14 +7,6 @@ import java.awt.image.BufferedImage;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
-/**
- * One {@link Palette} per distinct face a set actually uses.
- *
- * <p>Built eagerly on the main thread, because {@code Palette.of} is pure but the face images it
- * works from were resolved through the model dispatchers, and the painting pass that consumes
- * these runs in parallel. Palettes are keyed by image identity so a block whose six sides collapse
- * to one texture still only computes one palette, which is the overwhelming majority of blocks.
- */
 final class FacePalettes {
 
     private final Map<BufferedImage, Palette> byFace = new IdentityHashMap<>();

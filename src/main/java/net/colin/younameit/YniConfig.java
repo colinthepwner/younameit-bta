@@ -9,51 +9,30 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-/**
- * Plain .properties config. Deliberately not tied to any config library so the mod keeps
- * working against whatever HalpLibe version happens to be installed.
- */
 public final class YniConfig {
     private YniConfig() {}
 
     public static boolean enabled = true;
 
-    /** First item id handed out. BTA's item array is 32768 wide; vanilla uses the low few hundred. */
     public static int itemIdBase = 14000;
-    /** Hard ceiling so a huge modpack degrades gracefully instead of overrunning the item array. */
+
     public static int itemIdMax = 32767;
-    /**
-     * Block ids kept clear above the highest block that exists.
-     *
-     * <p>The item array and the block array overlap: a block's item lives at the block's own id, so
-     * the unused part of the block range is unused item ids too, and that is where most of the free
-     * space in a modded game actually is. Those slots get used, but filling downward from the top
-     * and stopping this far above the last block leaves room for a mod added later to register its
-     * blocks without landing on gear.
-     */
+
     public static int blockIdHeadroom = 1024;
 
-    /** Generate the 5 tools / the 4 armour pieces. */
     public static boolean generateTools = true;
     public static boolean generateArmor = true;
-    /** Register crafting recipes for everything generated. */
+
     public static boolean generateRecipes = true;
 
-    /** How much faster a tool is on its own block, as a multiplier on its normal speed. */
     public static double ownBlockBonus = 1.6;
 
-    /**
-     * Literal reading of the brief: sets made from furnace fuel take <em>less</em> fire damage.
-     * Flip this to false if you would rather flammable materials be worse in fire, not better.
-     */
     public static boolean fuelReducesFireDamage = true;
-    /** Full-set fire + lava immunity for sets made from non-flammable, fireproof blocks. */
+
     public static boolean fireResistantSetBonus = true;
 
-    /** Skip blocks whose texture could not be resolved rather than emitting a blank set. */
     public static boolean skipUntexturedBlocks = true;
 
-    /** Upper bound when splitting a block into its metadata variants (wool has 16). */
     public static int maxVariantsPerBlock = 16;
 
     private static Path file() {

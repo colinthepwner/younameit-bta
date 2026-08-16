@@ -20,14 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-/**
- * Builds and registers the actual items.
- *
- * <p>Runs from {@code afterItemInit}, which is the sweet spot in BTA's startup: every block and
- * item in the game exists, but {@code TextureRegistry.init()} has not run yet, so nothing has
- * been baked into the atlas. Textures themselves are produced later, on the client only — see
- * {@code net.colin.younameit.client.YniClient}.
- */
 public final class SetRegistrar {
     private SetRegistrar() {}
 
@@ -55,10 +47,7 @@ public final class SetRegistrar {
         }
 
         if (denied > 0) {
-            // Not a failure to allocate well — a genuine ceiling. BTA's item array is 32,768 wide
-            // and shared by every block and item in the game, so a pack past that simply cannot
-            // have gear for everything. Say which materials lost out rather than only how many,
-            // because "895 blocks got no gear" gives no clue whether the ones you wanted survived.
+
             YouNameIt.LOGGER.warn(
                     "The item array is full: {} of {} material(s) got no gear. Every mod took turns, "
                             + "so the shortfall is spread evenly rather than falling on one of them. "
@@ -71,7 +60,6 @@ public final class SetRegistrar {
         return registered;
     }
 
-    /** Which mods lost sets, and to what extent. Counted per namespace so the split is visible. */
     private static void logShortfall(List<MaterialSet> candidates) {
         Map<String, int[]> tally = new TreeMap<>();
         for (MaterialSet set : candidates) {
@@ -119,8 +107,7 @@ public final class SetRegistrar {
         }
 
         if (YniConfig.generateArmor) {
-            // The material's NamespaceID doubles as the armour sheet filename: BTA binds
-            // /assets/<namespace>/textures/armor/<value>_1.png and _2.png off exactly this.
+
             ArmorMaterial am = new ArmorMaterial(NamespaceID.fromPool(YouNameIt.MOD_ID, set.id), s.armorDurability)
                     .withProtectionPercentage(net.minecraft.core.util.helper.DamageType.COMBAT, s.combatProtection)
                     .withProtectionPercentage(net.minecraft.core.util.helper.DamageType.BLAST, s.blastProtection)
@@ -136,12 +123,10 @@ public final class SetRegistrar {
         }
     }
 
-    /** Texture key of the form {@code younameit:item/<set>_<piece>}. */
     public static String texKey(MaterialSet set, String piece) {
         return YouNameIt.MOD_ID + ":item/" + set.id + "_" + piece;
     }
 
-    /** The plain item name used as the translation key stem. */
     public static String itemName(MaterialSet set, String piece) {
         return set.id + "_" + piece;
     }
