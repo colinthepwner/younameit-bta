@@ -109,9 +109,8 @@ Written to `config/younameit.properties` on first launch.
 | `fuelReducesFireDamage` | `true` | Sets made of furnace fuel take *less* fire damage |
 | `skipUntexturedBlocks` | `true` | Skip blocks whose texture can't be resolved |
 | `maxVariantsPerBlock` | `16` | Cap when splitting a block into metadata variants |
-| `itemIdBase` | `14000` | First item id handed out |
+| `itemIdBase` | `16384` | First item id handed out; raised to the top of the block range if set lower |
 | `itemIdMax` | `32767` | Ceiling, so huge packs degrade instead of overrunning |
-| `blockIdHeadroom` | `1024` | Ids left clear above the highest block, for later mods |
 
 `fuelReducesFireDamage` is the literal reading — burnable material, *better* fire protection. Flip
 it if you'd rather flammable things be worse in a fire.

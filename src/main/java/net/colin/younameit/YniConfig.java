@@ -14,11 +14,9 @@ public final class YniConfig {
 
     public static boolean enabled = true;
 
-    public static int itemIdBase = 14000;
+    public static int itemIdBase = 16384;
 
     public static int itemIdMax = 32767;
-
-    public static int blockIdHeadroom = 1024;
 
     public static boolean generateTools = true;
     public static boolean generateArmor = true;
@@ -52,7 +50,6 @@ public final class YniConfig {
         enabled = bool(p, "enabled", enabled);
         itemIdBase = integer(p, "itemIdBase", itemIdBase);
         itemIdMax = integer(p, "itemIdMax", itemIdMax);
-        blockIdHeadroom = integer(p, "blockIdHeadroom", blockIdHeadroom);
         generateTools = bool(p, "generateTools", generateTools);
         generateArmor = bool(p, "generateArmor", generateArmor);
         generateRecipes = bool(p, "generateRecipes", generateRecipes);
@@ -69,7 +66,6 @@ public final class YniConfig {
         p.setProperty("enabled", String.valueOf(enabled));
         p.setProperty("itemIdBase", String.valueOf(itemIdBase));
         p.setProperty("itemIdMax", String.valueOf(itemIdMax));
-        p.setProperty("blockIdHeadroom", String.valueOf(blockIdHeadroom));
         p.setProperty("generateTools", String.valueOf(generateTools));
         p.setProperty("generateArmor", String.valueOf(generateArmor));
         p.setProperty("generateRecipes", String.valueOf(generateRecipes));

@@ -28,6 +28,10 @@ public final class YniIds {
         return FabricLoader.getInstance().getConfigDir().resolve("younameit-ids.properties");
     }
 
+    private static int floorId() {
+        return Blocks.blocksList.length;
+    }
+
     static int load(List<MaterialSet> sets) {
         assigned.clear();
         dirty = false;
@@ -44,12 +48,17 @@ public final class YniIds {
 
         int stride = Math.max(1, MaterialSet.ITEMS_PER_SET);
         boolean[] taken = occupancy();
+        int floor = floorId();
 
-        int reused = 0, moved = 0;
+        int reused = 0, moved = 0, evacuated = 0;
         for (String key : p.stringPropertyNames()) {
             try {
                 int value = Integer.parseInt(p.getProperty(key).trim());
-                if (isRunFree(taken, value, stride)) {
+                if (value < floor) {
+
+                    evacuated++;
+                    dirty = true;
+                } else if (isRunFree(taken, value, stride)) {
                     assigned.put(key, value);
                     markRun(taken, value, stride);
                     reused++;
@@ -61,8 +70,16 @@ public final class YniIds {
                 dirty = true;
             }
         }
+        if (evacuated > 0) {
+            YouNameIt.LOGGER.warn(
+                    "Moved {} set(s) out of the block id range, where an earlier version had put them. "
+                            + "Those items change id, so anything already in a world will follow its "
+                            + "saved name rather than its number — keep Useless Numerical installed for "
+                            + "that, which is what makes the remap by name possible.",
+                    evacuated);
+        }
 
-        Slots slots = new Slots(taken);
+        Slots slots = new Slots(taken, floor);
 
         int fresh = 0, denied = 0;
         for (MaterialSet set : sets) {
@@ -78,9 +95,11 @@ public final class YniIds {
         }
 
         YouNameIt.LOGGER.info(
-                "Item ids: {} free slot(s) across the array ({} above the items, {} in unused block space); "
-                        + "{} reused, {} reallocated, {} new, {} set(s) could not be served.",
-                slots.capacity(), slots.highCapacity(), slots.lowCapacity(), reused, moved, fresh, denied);
+                "Item ids: {} free slot(s) in the item half (ids {}-{}); "
+                        + "{} reused, {} reallocated, {} moved out of block space, {} new, "
+                        + "{} set(s) could not be served.",
+                slots.capacity(), floor, Math.min(YniConfig.itemIdMax, Item.itemsList.length - 1),
+                reused, moved, evacuated, fresh, denied);
         return assigned.size();
     }
 
@@ -100,62 +119,33 @@ public final class YniIds {
     private static final class Slots {
         private final boolean[] taken;
 
-        private int highCursor;
-        private final int highLimit;
-        private int lowCursor;
-        private final int lowFloor;
+        private int cursor;
+        private final int limit;
+        private final int free;
 
-        private final int highFree;
-        private final int lowFree;
-
-        Slots(boolean[] taken) {
+        Slots(boolean[] taken, int floor) {
             this.taken = taken;
+            this.cursor = Math.max(floor, Math.min(YniConfig.itemIdBase, taken.length - 1));
+            this.limit = Math.min(YniConfig.itemIdMax, taken.length - 1);
 
-            int highestItem = 0;
-            for (int i = 0; i < taken.length; i++) {
-                if (taken[i]) highestItem = i;
-            }
-            this.highCursor = Math.max(YniConfig.itemIdBase, highestItem + 1);
-            this.highLimit = Math.min(YniConfig.itemIdMax, taken.length - 1);
-
-            int blockTop = Math.min(Blocks.blocksList.length, taken.length) - 1;
-            this.lowFloor = Math.max(0, Blocks.highestBlockId + Math.max(0, YniConfig.blockIdHeadroom));
-            this.lowCursor = blockTop;
-
-            this.highFree = count(highCursor, highLimit);
-            this.lowFree = count(lowFloor, blockTop);
-        }
-
-        private int count(int from, int to) {
             int n = 0;
-            for (int i = Math.max(0, from); i <= Math.min(to, taken.length - 1); i++) {
+            for (int i = Math.max(0, cursor); i <= limit; i++) {
                 if (!taken[i]) n++;
             }
-            return n;
+            this.free = n;
         }
 
-        int capacity() { return highFree + lowFree; }
-        int highCapacity() { return highFree; }
-        int lowCapacity() { return lowFree; }
+        int capacity() { return free; }
 
         int take(int stride) {
-            while (highCursor + stride - 1 <= highLimit) {
-                if (isRunFree(taken, highCursor, stride)) {
-                    int base = highCursor;
+            while (cursor + stride - 1 <= limit) {
+                if (isRunFree(taken, cursor, stride)) {
+                    int base = cursor;
                     markRun(taken, base, stride);
-                    highCursor += stride;
+                    cursor += stride;
                     return base;
                 }
-                highCursor++;
-            }
-            while (lowCursor - stride + 1 >= lowFloor) {
-                int base = lowCursor - stride + 1;
-                if (isRunFree(taken, base, stride)) {
-                    markRun(taken, base, stride);
-                    lowCursor = base - 1;
-                    return base;
-                }
-                lowCursor--;
+                cursor++;
             }
             return -1;
         }
